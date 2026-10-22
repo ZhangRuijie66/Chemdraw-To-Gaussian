@@ -3,6 +3,37 @@
 把 ChemDraw 画的分子一键变成可以直接上传超算的 Gaussian 输入文件。
 **不联网、不上传数据**，所有转换都在本机完成。
 
+## 快速开始
+
+### 方式一：便携版（推荐，Windows 直接用）
+
+1. 下载本仓库（`Code` → `Download ZIP`），解压；
+2. 双击 **`启动.cmd`**，首次运行会自动安装依赖
+   （`rdkit` / `numpy` / `matplotlib` / `paramiko`，走清华镜像，需要联网）；
+3. 浏览器自动打开 `http://127.0.0.1:8795/`；
+4. 左侧选 ChemDraw 文件目录 → 「扫描」→ 勾选分子 → 「生成 .gjf」。
+
+> 关闭那个黑色命令行窗口即停止服务；数据全程在本机，不上传。
+
+### 方式二：源码运行（任意系统）
+
+```bash
+git clone git@github.com:ZhangRuijie66/Chemdrew-To-Gaussian.git
+cd Chemdrew-To-Gaussian
+python -m pip install -r requirements.txt
+python run.py
+```
+
+也可以在命令行批量转换：
+
+```bash
+python run.py --test                          # 自检
+python run.py --make 输入目录 输出目录           # 批量生成 .gjf
+```
+
+依赖说明：`rdkit`（结构/3D）、`numpy`+`matplotlib`（解析与作图）、`paramiko`（SSH 提交，
+仓库不含 `vendor/`，需 pip 安装）。
+
 ## 它做什么
 
 ```
