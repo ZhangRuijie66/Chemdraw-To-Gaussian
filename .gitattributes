@@ -1,0 +1,5 @@
+* text=auto
+*.gjf text eol=crlf
+*.sh text eol=lf
+*.cmd text eol=crlf
+*.py text eol=lf

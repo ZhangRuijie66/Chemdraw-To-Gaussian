@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# 第三方依赖（运行时用 vendor/，不纳入仓库）
+vendor/
+
+# 本机设置与临时产物
+settings.json
+_test_out/
+*.bak
+.dsh-ops-update-*.lock
+
+# 打包产物
+hpc_*/
+*.zip

@@ -1,0 +1,7 @@
+# 核心依赖（启动.cmd 会自动安装）
+rdkit>=2023.9
+numpy
+matplotlib
+
+# SSH 提交用（也可放在 vendor/ 里离线使用）
+paramiko>=3.0

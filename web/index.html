@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>高斯计算工具 · ChemDraw → 3D → .gjf</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #f2f4f8; color: #1f2430;
+    font: 14px/1.6 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 22px; background: #fff; border-bottom: 1px solid #e3e7ef;
+    position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-size: 17px; margin: 0; font-weight: 600; }
+  header .sub { color: #6b7280; font-size: 12.5px; }
+  header .spacer { flex: 1; }
+  .btn {
+    border: 1px solid #cfd6e4; background: #fff; color: #1f2430;
+    padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 13px;
+  }
+  .btn:hover { background: #f4f6fb; }
+  .btn.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+  .btn.primary:hover { background: #1d4ed8; }
+  .btn:disabled { opacity: .55; cursor: default; }
+  main { display: flex; gap: 16px; padding: 16px 22px 0; align-items: flex-start; }
+  .left { width: 430px; flex: 0 0 430px; display: flex; flex-direction: column; gap: 14px; }
+  .right { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+  .bottom { margin: 16px 22px 40px; }
+  .bottom pre { max-height: 460px; }
+  .card { background: #fff; border: 1px solid #e3e7ef; border-radius: 12px; padding: 14px 16px; }
+  .card h2 { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: #374151; }
+  .field { margin-bottom: 10px; }
+  .field > label { display: block; font-size: 12.5px; color: #4b5563; margin-bottom: 4px; }
+  .field input[type=text], .field input[type=password], .field input[type=number],
+  .field select {
+    width: 100%; padding: 7px 9px; border: 1px solid #d3dae7; border-radius: 8px;
+    font: inherit; font-size: 13px; background: #fff;
+  }
+  .field input:focus, .field select:focus { outline: 2px solid #bfd3ff; border-color: #7aa7ff; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .btnrow { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+  .hint { font-size: 12px; color: #6b7280; margin: 6px 0 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 6px 2px; }
+  .chips label { font-size: 12.5px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+  .mollist { max-height: 260px; overflow: auto; border: 1px solid #e8ecf4; border-radius: 10px; }
+  .molrow { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid #f0f3f9; cursor: pointer; }
+  .molrow:last-child { border-bottom: 0; }
+  .molrow:hover { background: #f7f9fe; }
+  .molrow input { margin: 0; }
+  .molrow .name { font-weight: 600; min-width: 54px; }
+  .molrow .meta { color: #6b7280; font-size: 12px; }
+  .molrow .err { color: #b91c1c; font-size: 12px; }
+  pre {
+    margin: 0; padding: 12px 14px; background: #0f172a; color: #e2e8f0;
+    border-radius: 10px; font: 12.5px/1.55 "Cascadia Mono", Consolas, monospace;
+    overflow: auto; max-height: 560px; white-space: pre;
+  }
+  .console {
+    max-height: 460px; min-height: 160px; overflow: auto;
+    white-space: pre-wrap; word-break: break-word;
+    border: 1px solid #1e293b;
+  }
+  .route { font: 12.5px/1.5 "Cascadia Mono", Consolas, monospace; color: #1d4ed8;
+           background: #eef4ff; border-radius: 8px; padding: 8px 10px; word-break: break-all; }
+  .result { font-size: 12.5px; }
+  .result .ok { color: #047857; }
+  .result .bad { color: #b91c1c; }
+  .card table th, .card table td { padding: 6px 10px; border-bottom: 1px solid #eef1f7; }
+  .card table th { color: #4b5563; font-weight: 600; }
+  .toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+    background: #111827; color: #fff; padding: 10px 18px; border-radius: 10px;
+    font-size: 13px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 99;
+  }
+  .toast.show { opacity: .94; }
+</style>
+</head>
+<body>
+<header>
+  <h1>高斯计算工具</h1>
+  <span class="sub">ChemDraw → 3D（RDKit/MMFF）→ Gaussian .gjf</span>
+  <span class="sub" id="verTag" style="color:#9ca3af">v?</span>
+  <span class="spacer"></span>
+  <button class="btn" id="btnSave">存为默认</button>
+</header>
+
+<main>
+  <div class="left">
+    <section class="card">
+      <h2>输入 / 输出</h2>
+      <div class="field">
+        <label>ChemDraw 文件目录（.cdxml / .cdx / .mol）</label>
+        <input type="text" id="dataDir" placeholder="选择放 ChemDraw 文件的文件夹">
+        <div class="btnrow">
+          <button class="btn" id="btnBrowse">选择文件夹…</button>
+          <button class="btn" id="btnScan">扫描</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>输出目录（默认写到输入目录下的 gjf 子文件夹）</label>
+        <input type="text" id="outDir" placeholder="留空 = 输入目录\gjf">
+        <div class="btnrow"><button class="btn" id="btnBrowseOut">选择文件夹…</button></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>计算设置</h2>
+      <div class="field"><label>任务类型</label><select id="job"></select></div>
+      <div class="row2">
+        <div class="field"><label>泛函</label><select id="functional"></select></div>
+        <div class="field"><label>基组</label><select id="basis"></select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>色散校正</label><select id="dispersion"></select></div>
+        <div class="field"><label>溶剂</label><select id="solvent"></select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>溶剂模型</label><select id="solvationModel"></select></div>
+        <div class="field"><label>TD 激发态数</label><input type="number" id="tdStates" min="1" max="50"></div>
+      </div>
+      <div class="row3">
+        <div class="field"><label>核数</label><input type="number" id="nproc" min="1" max="256"></div>
+        <div class="field"><label>内存</label><input type="text" id="mem" placeholder="160GB"></div>
+        <div class="field"><label>chk 后缀</label><input type="text" id="chkSuffix"></div>
+      </div>
+      <div class="row3">
+        <div class="field"><label>构象数</label><input type="number" id="nConformers" min="1" max="20"></div>
+        <div class="field"><label>力场</label><select id="forceField"></select></div>
+        <div class="field"><label>尾部空行</label><input type="number" id="trailing" min="1" max="4"></div>
+      </div>
+      <div class="field"><label><input type="checkbox" id="twoStep"> 同时生成 TD-DFT 单点文件（<code>_td.gjf</code>，需先跑完 opt）</label></div>
+      <p class="hint">当前 route 行：</p>
+      <div class="route" id="routeText">—</div>
+    </section>
+
+    <section class="card">
+      <h2>分子（勾选要生成的）</h2>
+      <div class="btnrow" style="margin-bottom:8px">
+        <button class="btn" id="btnAll">全选</button>
+        <button class="btn" id="btnNone">全不选</button>
+      </div>
+      <div class="mollist" id="molList"><p class="hint">先选择目录并点「扫描」。</p></div>
+      <div class="btnrow" style="margin-top:12px">
+        <button class="btn primary" id="btnMake" style="flex:1;padding:11px 14px;font-size:14.5px">
+          生成 .gjf
+        </button>
+      </div>
+      <p class="hint" id="makeHint">生成到输出目录（默认 输入目录\gjf）。</p>
+    </section>
+  </div>
+
+  <div class="right">
+    <section class="card">
+      <h2>超算提交（北大 HPC · Slurm）</h2>
+      <div class="field"><label>集群</label><select id="cluster"></select></div>
+      <div class="field">
+        <label>提交哪些分子（不勾选 = 提交时再挑文件）</label>
+        <div class="chips" id="submitMols"><span class="hint">先扫描分子目录</span></div>
+      </div>
+      <div class="field"><label>提交类型</label>
+        <select id="submitKind">
+          <option value="all">全部 .gjf</option>
+          <option value="opt">优化 / 频率（opt、freq）</option>
+          <option value="td">TD-DFT 单点（_td.gjf）</option>
+          <option value="gs">振动分辨第一步（_gs.gjf）</option>
+          <option value="fc">振动分辨第二步（_fc.gjf）</option>
+          <option value="freq">单独频率（_freq.gjf）</option>
+        </select>
+      </div>
+      <div class="row3">
+        <div class="field"><label>分区</label><input type="text" id="partition"></div>
+        <div class="field"><label>QOS</label><input type="text" id="qos"></div>
+        <div class="field"><label>核数</label><input type="number" id="ntasks" min="1"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>远程目录</label><input type="text" id="remoteDir"></div>
+        <div class="field"><label>墙钟时间</label><input type="text" id="walltime"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>集群地址</label><input type="text" id="hpcHost"></div>
+        <div class="field"><label>学号</label><input type="text" id="hpcUser"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>密码</label><input type="password" id="hpcPwd"></div>
+        <div class="field"><label>OTP 动态码</label><input type="text" id="hpcOtp" maxlength="6"></div>
+      </div>
+      <div class="btnrow">
+        <button class="btn" id="btnBundle" title="只生成文件和脚本，不连集群，可手动上传">仅生成提交包</button>
+        <button class="btn" id="btnLogin">登录（保持连接）</button>
+        <button class="btn" id="btnLogout">断开</button>
+      </div>
+      <div class="btnrow">
+        <button class="btn primary" id="btnSubmit">上传并提交</button>
+        <button class="btn" id="btnStatus">查询作业</button>
+        <button class="btn" id="btnFetch">读取日志</button>
+        <button class="btn" id="btnChk">读取 chk</button>
+      </div>
+      <div id="localPick" style="margin-top:10px"></div>
+      <p class="hint" id="hpcSession">未登录（首次操作需密码 + OTP）</p>
+      <p class="hint">密码和 OTP 只在本次请求里使用，不会保存。平台不支持密钥登录，登录节点需在校园网内。</p>
+      <div class="btnrow" style="margin-top:10px">
+        <button class="btn" id="btnClearOut">清空输出</button>
+      </div>
+      <pre id="hpcOut" class="console">—</pre>
+    </section>
+
+    <section class="card">
+      <h2>生成结果</h2>
+      <div class="result" id="results"><p class="hint">还没有生成文件。</p></div>
+    </section>
+
+    <section class="card">
+      <h2>计算结果（下载日志后自动解析）</h2>
+      <div class="btnrow" style="margin-bottom:8px">
+        <button class="btn" id="btnParseLocal">解析本地日志</button>
+      </div>
+      <div id="remoteFiles" style="margin-bottom:10px"></div>
+      <div id="logResults"><p class="hint">下载日志后，这里会列出分子、状态、能量、优化、虚频和 TD-DFT 第一激发态。</p></div>
+    </section>
+  </div>
+</main>
+
+<section class="card bottom">
+  <h2>预览（点左侧分子名查看生成的 .gjf）</h2>
+  <pre id="preview">还未选择分子…</pre>
+</section>
+<div class="toast" id="toast"></div>
+<script src="app.js?v=0.5.9"></script>
+</body>
+</html>
