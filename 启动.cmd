@@ -23,5 +23,11 @@ if errorlevel 1 (
   "%PY%" -m pip install rdkit -i https://pypi.tuna.tsinghua.edu.cn/simple
 )
 
+"%PY%" -c "import paramiko" >nul 2>nul
+if errorlevel 1 (
+  echo  Installing paramiko ^(SSH^) ...
+  "%PY%" -m pip install paramiko -i https://pypi.tuna.tsinghua.edu.cn/simple
+)
+
 "%PY%" "%~dp0run.py"
 pause

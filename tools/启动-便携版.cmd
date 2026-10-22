@@ -41,7 +41,7 @@ rem ---- rdkit / numpy / matplotlib -------------------------------------
 if errorlevel 1 (
   echo.
   echo  Installing missing packages ^(first run only, needs internet^) ...
-  "%PY%" -m pip install rdkit numpy matplotlib -i https://pypi.tuna.tsinghua.edu.cn/simple
+  "%PY%" -m pip install rdkit numpy matplotlib paramiko -i https://pypi.tuna.tsinghua.edu.cn/simple
   "%PY%" -c "import rdkit" >nul 2>nul
   if errorlevel 1 (
     echo.
