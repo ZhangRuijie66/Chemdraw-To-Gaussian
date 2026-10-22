@@ -18,8 +18,8 @@
 ### 方式二：源码运行（任意系统）
 
 ```bash
-git clone git@github.com:ZhangRuijie66/Chemdrew-To-Gaussian.git
-cd Chemdrew-To-Gaussian
+git clone git@github.com:ZhangRuijie66/Chemdraw-To-Gaussian.git
+cd Chemdraw-To-Gaussian
 python -m pip install -r requirements.txt
 python run.py
 ```
