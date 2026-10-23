@@ -97,6 +97,15 @@ def parse_cdxml(path):
         Chem.SanitizeMol(mol)
     except Exception as exc:  # noqa: BLE001
         raise ChemDrawError('结构价态检查失败（%s），请检查 ChemDraw 里的电荷/键级' % exc)
+
+    # 关键：从 ChemDraw 的 2D 坐标判定双键的 E/Z（顺反）。
+    # 不做这一步，ETKDG 会随机选顺反，长链分子（如 β-胡萝卜素）会被建成
+    # 一堆顺式双键，优化后平面性很差、吸收峰也偏蓝。
+    try:
+        Chem.DetectBondStereoChemistry(mol, mol.GetConformer())
+        Chem.AssignStereochemistry(mol, cleanIt=False, force=True)
+    except Exception:  # noqa: BLE001
+        pass
     if chk:
         mol.SetProp('_fragment_note', chk)
     return mol
