@@ -42,6 +42,9 @@ function setFields(cfg) {
   $('chkSuffix').value = cfg.chk_suffix || '_opt';
   $('nConformers').value = cfg.n_conformers || 1;
   $('forceField').value = cfg.force_field || 'MMFF94';
+  $('backend').value = cfg.backend || 'rdkit';
+  $('chem3dPython').value = cfg.chem3d_python || '';
+  $('chem3dPython').disabled = $('backend').value !== 'chem3d';
   $('trailing').value = cfg.trailing_blank_lines || 2;
   $('twoStep').checked = !!cfg.two_step;
   $('partition').value = cfg.partition || 'C032M0128G';
@@ -72,6 +75,8 @@ function readConfig() {
     chk_suffix: $('chkSuffix').value.trim() || '_opt',
     n_conformers: Number($('nConformers').value || 1),
     force_field: $('forceField').value,
+    backend: $('backend').value || 'rdkit',
+    chem3d_python: $('chem3dPython').value.trim(),
     trailing_blank_lines: Number($('trailing').value || 2),
     two_step: $('twoStep').checked,
     cluster: $('cluster').value,
@@ -214,7 +219,10 @@ async function make() {
     state.gjfPaths = r.results.filter((x) => !x.error).flatMap((x) => x.files);
     const rows = r.results.map((x) => {
       if (x.error) return `<div class="bad">✗ ${x.name}：${x.error}</div>`;
-      return `<div class="ok">✓ ${x.name} → ${x.files.map((f) => f.split(/[\\/]/).pop()).join(', ')}（${x.atoms} 原子，${x.force_field}）</div>`;
+      const ffText = (x.backend === 'chem3d' && x.mm2_energy != null)
+        ? 'Chem3D/MM2 ' + Number(x.mm2_energy).toFixed(2) + ' kcal/mol'
+        : (x.force_field || '');
+      return `<div class="ok">✓ ${x.name} → ${x.files.map((f) => f.split(/[\\/]/).pop()).join(', ')}（${x.atoms} 原子，${ffText}）</div>`;
     }).join('');
     $('results').innerHTML = rows + `<p class="hint">输出目录：${r.out_dir}　成功 ${r.n_ok}，失败 ${r.n_fail}</p>`;
     if (r.results.length) preview(r.results[0].path);
@@ -269,6 +277,10 @@ $('job').addEventListener('change', () => {
   if (k) $('submitKind').value = k;
   else if ($('job').value === 'opt_freq' || $('job').value === 'opt') $('submitKind').value = 'opt';
   preview(state.lastPreview?.path);
+});
+$('backend').addEventListener('change', () => {
+  $('chem3dPython').disabled = $('backend').value !== 'chem3d';
+  if (state.lastPreview) preview(state.lastPreview.path);
 });
 ['functional', 'basis', 'dispersion', 'solvent', 'solvationModel', 'tdStates',
  'chkSuffix', 'trailing', 'twoStep', 'nproc', 'mem'].forEach((id) => {

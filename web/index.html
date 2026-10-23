@@ -82,7 +82,7 @@
 <body>
 <header>
   <h1>高斯计算工具</h1>
-  <span class="sub">ChemDraw → 3D（RDKit/MMFF）→ Gaussian .gjf</span>
+  <span class="sub">ChemDraw → 3D（RDKit / Chem3D）→ Gaussian .gjf</span>
   <span class="sub" id="verTag" style="color:#9ca3af">v?</span>
   <span class="spacer"></span>
   <button class="btn" id="btnSave">存为默认</button>
@@ -132,6 +132,21 @@
         <div class="field"><label>力场</label><select id="forceField"></select></div>
         <div class="field"><label>尾部空行</label><input type="number" id="trailing" min="1" max="4"></div>
       </div>
+      <div class="row2">
+        <div class="field">
+          <label>3D 后端</label>
+          <select id="backend">
+            <option value="rdkit">RDKit（默认）</option>
+            <option value="chem3d">Chem3D（需 Python 3.10 + ChemOffice）</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Chem3D Python（3.9 / 3.10 解释器）</label>
+          <input type="text" id="chem3dPython" placeholder="留空 = 环境变量 CHEM3D_PYTHON">
+        </div>
+      </div>
+      <p class="hint">Chem3D 后端用 ChemScript 子进程做 2D→3D + MM2（不认中文路径，工具会自动暂存到 C:\Temp）；
+        TD / freq 任务不需要 3D，仍只用 RDKit 解析。</p>
       <div class="field"><label><input type="checkbox" id="twoStep"> 同时生成 TD-DFT 单点文件（<code>_td.gjf</code>，需先跑完 opt）</label></div>
       <p class="hint">当前 route 行：</p>
       <div class="route" id="routeText">—</div>

@@ -52,6 +52,7 @@ A1.cdxml / A1.cdx / A1.mol
         ▼
    RDKit 读结构（键级、电荷、隐式氢、从 2D 坐标读双键顺反）
         │  ETKDG 生成 3D + MMFF94 力场优化（非环 C=C 强制反式）
+        │  [可选] 换成 Chem3D：ChemScript 转 3D + MM2，见「3D 后端」
         ▼
    .gjf（头部 + route + 标题 + 电荷/多重度 + 坐标 + 两个空行）
         │  + job_<名字>.sh / submit_all.sh / README.txt（提交包）
@@ -78,6 +79,8 @@ A1.cdxml / A1.cdx / A1.mol
 
 - 任务类型：`opt freq` / `opt` / `freq` / `TD-DFT 单点` / `opt + TD` / `振动分辨 (FC/HT)`；
 - 泛函、基组、色散、溶剂、溶剂模型、核数、内存、TD 激发态数、构象数、力场、chk 后缀、尾部空行；
+- **3D 后端**：RDKit（默认）/ Chem3D；选 Chem3D 时在「Chem3D Python」填 3.9/3.10 解释器路径
+  （详见下面的「3D 后端」一节）；
 - 「同时生成 TD-DFT 单点文件」= 一次生成 `X.gjf` + `X_td.gjf`（两步法）；
 - 下方实时显示当前 route 行。
 
@@ -225,6 +228,41 @@ ChemDraw 的 **2D 坐标里带着每个双键的顺反信息**，工具会把它
 
 ---
 
+## 3D 后端：RDKit（默认）/ Chem3D
+
+2D → 3D 这一步有两个可切换的后端，在「计算设置 → 3D 后端」里选：
+
+| 后端 | 怎么做 3D | 依赖 | 适用 |
+| --- | --- | --- | --- |
+| **RDKit（默认）** | ETKDG 嵌入 + MMFF94 力场优化（非环 C=C 强制反式） | `rdkit`（工具自带） | 日常使用；MMFF94 对 S/N 的参数更靠谱 |
+| Chem3D | ChemScript：`ReadFile → ConvertTo3DStructure → 循环 MM2` | Python **3.9 / 3.10** + 本机 ChemOffice；在「Chem3D Python」填解释器路径（或设环境变量 `CHEM3D_PYTHON`） | 想复现课上的 Chem3D/MM2 流程，或要更平的共轭链 |
+
+要点：
+
+- **为什么用子进程**：主程序跑在 Python 3.11，而 ChemScript 只有 `_ChemScriptForPy39.pyd` /
+  `_ChemScriptForPy310.pyd`，3.11 里 import 必失败。所以 Chem3D 后端由 `gcalc/chem3d.py`
+  起一个 3.10 子进程跑 `gcalc/chem3d_worker.py`，用 JSON 传回原子/键/电荷/分子式/MM2 能量，
+  **主程序不用换解释器**。
+- **ChemScript 不认中文路径**（中文路径下 `ReadFile` 静默失败、不抛异常）：工具会自动把输入
+  复制到 `C:\Temp\chem3dwork\` 再读。找不到解释器 / 跑失败时，「生成结果」里会给出明确原因，
+  按提示在设置里填 3.10 的 `python.exe` 即可。
+- **MM2 的两个已知偏差**：C–S 键被压到约 1.47 Å（A2 文献约 1.73 Å；MMFF94 给 1.79），
+  而且共轭多烯会被**强制拉成全反式**（2-丁烯的顺式能保留，己三烯/四烯/A2 的顺式会被翻掉）。
+  所以**顺反控制代码保留**：默认 RDKit 后端仍然用 `_force_trans_double_bonds()`，
+  切到 Chem3D 只是换 3D 来源；两种后端都只是起始结构，最终几何靠 Gaussian 的 `opt`。
+- TD-DFT / 单独 freq 不需要 3D 坐标：即使选了 Chem3D，也只做 RDKit 解析，不启动 ChemScript。
+- 如果系统的 `PYTHONPATH` 里同时有 `C:\Program Files (x86)\...\ChemScript\Lib`（32 位）和
+  64 位的那份，worker 会先把指定的 Lib 提到最前，避免 64 位 Python 误加载 32 位 `.pyd`。
+
+本机示例：
+
+```text
+Chem3D Python：...\python310\cpython-3.10.20-windows-x86_64-none\python.exe   （uv 装的独立 3.10）
+ChemScript Lib：C:\Program Files\PerkinElmerInformatics\ChemOffice\ChemScript\Lib
+```
+
+---
+
 ## 超算提交（北大 HPC · Slurm）
 
 平台规则（据 <https://hpc.pku.edu.cn/ug/guide/access/> 与 /ug/soft/gaussian/）：
@@ -302,6 +340,9 @@ Gaussian 16 Rev C.01 起支持 FC/HT 振动分辨电子谱。任务类型选「�
 
 - **.cdx** 依赖本机安装的 ChemDraw（通过 COM 转 molfile）；`.cdxml` / `.mol` 不需要。
 - 3D 结构来自 RDKit 力场 + 「全反式」约束，是 Gaussian `opt` 的**起始结构**，不是最终构型。
+- Chem3D 后端要另装 Python 3.9/3.10 + 本机 ChemOffice；MM2 的 C–S 偏短约 0.26 Å，且会把
+  共轭多烯强制成全反式（顺式异构体只能靠 RDKit 后端）；每次预览/生成都会起一次 3.10 子进程
+  （A2 约 2 秒，B1 约 2.3 秒，含解释器与 ChemScript 启动）。
 - 电荷/多重度：电荷自动取自 ChemDraw 结构；多重度默认 1（单重态），开壳层需手动改。
 - **`opt freq` 对 90+ 原子的大分子很吃内存**：β-胡萝卜素（96 原子）的 freq 在 L1101 阶段
   被 OOM 杀掉过；报告只比 λmax 的话做 `opt` 就够，确实要 freq 建议把 `%mem` 降到 32–64 GB
@@ -323,6 +364,8 @@ Gaussian 16 Rev C.01 起支持 FC/HT 振动分辨电子谱。任务类型选「�
     methods.py        泛函、基组、任务目录 + route 拼装
     cdxml.py          CDXML 解析（含 2D 顺反）、.cdx → mol（ChemDraw COM）
     embed.py          RDKit 3D 嵌入 + MMFF94 + 全反式约束
+    chem3d.py         可选 3D 后端（Chem3D）：起 3.10 子进程调 ChemScript
+    chem3d_worker.py  ChemScript worker（必须 3.9/3.10）：cdxml → 3D → 循环 MM2 → JSON
     gjf.py            .gjf 格式（照 A1-2.gjf 逐字对齐）
     batch.py          扫描目录、批量生成
     hpc.py            SSH 连接、提交包、sbatch 依赖、squeue/scancel、formchk、下载
@@ -343,6 +386,7 @@ Gaussian 16 Rev C.01 起支持 FC/HT 振动分辨电子谱。任务类型选「�
 
 | 版本 | 日期 | 主要变化 |
 | --- | --- | --- |
+| 2026-10-23 | 新增 | 3D 后端可选 **Chem3D**（ChemScript + MM2，3.10 子进程）；默认仍 RDKit，顺反控制不变 |
 | v0.6.0 | 2026-10-23 | 新增「命令行」执行任意远程命令、「取消作业」(scancel) |
 | 2026-10-23 | 修复 | ChemDraw 双键顺反丢失导致长链分子被建成顺式；非环 C=C 默认全反式 |
 | v0.5.x | 2026-10-22 | 提交类型与分子筛选、提交前文件选择面板、日志先读取（带修改时间）再勾选下载、chk 读取与 formchk 转 fchk、孤立 TD/freq 不再覆盖基态 chk、日志解析容错 |
