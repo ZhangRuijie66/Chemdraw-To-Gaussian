@@ -202,7 +202,23 @@
       <div id="localPick" style="margin-top:10px"></div>
       <p class="hint" id="hpcSession">未登录（首次操作需密码 + OTP）</p>
       <p class="hint">密码和 OTP 只在本次请求里使用，不会保存。平台不支持密钥登录，登录节点需在校园网内。</p>
-      <div class="btnrow" style="margin-top:10px">
+      <div class="field" style="margin-top:10px">
+        <label>命令行（在登录节点执行，例如 <code>squeue -u $USER</code>、<code>sbatch job_A1.sh</code>、<code>ls -lh *.log</code>）</label>
+        <div class="btnrow" style="align-items:center">
+          <input type="text" id="hpcCmd" placeholder="输入命令后回车或点「执行」"
+                 style="flex:1;min-width:220px;padding:7px 9px;border:1px solid #d3dae7;border-radius:8px;font:inherit;font-size:13px">
+          <button class="btn" id="btnRunCmd">执行</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>取消作业（作业号，空格分隔，例如 <code>58750 58751</code>）</label>
+        <div class="btnrow" style="align-items:center">
+          <input type="text" id="hpcJobIds" placeholder="job id"
+                 style="flex:1;min-width:160px;padding:7px 9px;border:1px solid #d3dae7;border-radius:8px;font:inherit;font-size:13px">
+          <button class="btn" id="btnCancelJob">取消作业</button>
+        </div>
+      </div>
+      <div class="btnrow" style="margin-top:4px">
         <button class="btn" id="btnClearOut">清空输出</button>
       </div>
       <pre id="hpcOut" class="console">—</pre>
@@ -229,6 +245,6 @@
   <pre id="preview">还未选择分子…</pre>
 </section>
 <div class="toast" id="toast"></div>
-<script src="app.js?v=0.5.9"></script>
+<script src="app.js?v=0.6.0"></script>
 </body>
 </html>

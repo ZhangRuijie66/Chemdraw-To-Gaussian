@@ -397,6 +397,22 @@ class HpcClient:
         code = stdout.channel.recv_exit_status()
         return out, err, code
 
+    def run_command(self, cmd, timeout=300):
+        """在登录节点执行一条命令（远程 shell），返回输出和退出码。"""
+        cmd = (cmd or '').strip()
+        if not cmd:
+            raise HpcError('命令为空')
+        out, err, code = self.run(cmd, timeout=timeout)
+        return dict(output=((out or '') + (err or '')).strip(), code=code)
+
+    def cancel_jobs(self, ids):
+        """scancel 指定作业号。"""
+        ids = [str(i).strip() for i in (ids or []) if str(i).strip()]
+        if not ids:
+            raise HpcError('没有作业号')
+        out, err, code = self.run('scancel ' + ' '.join(ids))
+        return dict(output=((out or '') + (err or '')).strip(), code=code, ids=ids)
+
     def submit(self, remote_dir, names, deps=None):
         """提交作业；deps = {作业名: [前置 job id]} → sbatch --dependency=afterok:…"""
         remote_dir = self.resolve_remote(remote_dir)

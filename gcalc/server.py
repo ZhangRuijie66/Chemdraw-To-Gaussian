@@ -381,7 +381,8 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             if path in ('/api/hpc/login', '/api/hpc/submit', '/api/hpc/status',
-                        '/api/hpc/fetch', '/api/hpc/chk', '/api/hpc/ls'):
+                        '/api/hpc/fetch', '/api/hpc/chk', '/api/hpc/ls',
+                        '/api/hpc/run', '/api/hpc/cancel'):
                 cfg = _config_from(payload.get('config') or {})
                 remote = (payload.get('remote_dir') or cfg.get('remote_dir') or '~/g16jobs').strip()
                 if payload.get('host') and not cfg.get('hpc_host'):
@@ -424,6 +425,21 @@ class Handler(BaseHTTPRequestHandler):
                         files = cli.download_files(remote, names, local) if names else []
                         self._json(dict(ok=True, entries=out_entries, files=files,
                                         dir=local, session=_hpc_session_info()))
+                        return
+
+                    if path == '/api/hpc/run':
+                        cmd = (payload.get('cmd') or '').strip()
+                        res = cli.run_command(cmd, timeout=int(payload.get('timeout') or 300))
+                        self._json(dict(ok=True, output=res['output'], code=res['code'],
+                                        session=_hpc_session_info()))
+                        return
+
+                    if path == '/api/hpc/cancel':
+                        ids = payload.get('ids') or []
+                        res = cli.cancel_jobs(ids)
+                        self._json(dict(ok=True, output=res['output'], code=res['code'],
+                                        ids=res['ids'], squeue=cli.status(),
+                                        session=_hpc_session_info()))
                         return
 
                     if path == '/api/hpc/ls':

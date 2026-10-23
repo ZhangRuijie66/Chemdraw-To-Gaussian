@@ -515,6 +515,13 @@ async function hpcCall(path, extra) {
         txt += NL + NL + '近两天已完成作业：' + NL + (r.history || '(没有记录)');
       }
       hpcLog(txt);
+    } else if (path.endsWith('/run')) {
+      hpcLog('$ ' + $('hpcCmd').value.trim() + NL + (r.output || '(无输出)') +
+             NL + '(退出码 ' + r.code + ')');
+    } else if (path.endsWith('/cancel')) {
+      hpcLog('已取消：' + (r.ids || []).join(' ') + NL + (r.output || '(无输出)') +
+             NL + NL + '当前队列：' + NL + (r.squeue || '(空)'));
+      $('hpcJobIds').value = '';
     } else if (path.endsWith('/ls')) {
       const label = r.kind === 'chk' ? '.chk' : '日志';
       if (!r.files || !r.files.length) {
@@ -598,6 +605,20 @@ $('btnBundle').onclick = () => pickOrDirect('bundle');
 $('btnLogin').onclick = () => hpcCall('/api/hpc/login');
 $('btnSubmit').onclick = () => pickOrDirect('submit');
 $('btnStatus').onclick = () => hpcCall('/api/hpc/status');
+$('btnRunCmd').onclick = () => {
+  const cmd = $('hpcCmd').value.trim();
+  if (!cmd) { toast('先输入命令'); return; }
+  hpcCall('/api/hpc/run', { cmd });
+};
+$('hpcCmd').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); $('btnRunCmd').onclick(); }
+});
+$('btnCancelJob').onclick = () => {
+  const ids = $('hpcJobIds').value.trim().split(/[\s,]+/).filter(Boolean);
+  if (!ids.length) { toast('先填作业号'); return; }
+  if (!confirm('确定取消作业 ' + ids.join(', ') + ' ？')) return;
+  hpcCall('/api/hpc/cancel', { ids });
+};
 $('btnFetch').onclick = () => hpcCall('/api/hpc/ls');
 $('btnChk').onclick = () => hpcCall('/api/hpc/ls', { suffix: 'chk' });
 $('btnLogout').onclick = async () => {
