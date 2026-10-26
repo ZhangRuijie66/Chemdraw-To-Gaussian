@@ -15,8 +15,8 @@ import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 NAME = '高斯计算工具-可移植版'
-SKIP_DIRS = {'__pycache__', '_test_out', '.git'}
-SKIP_FILES = {'settings.json', 'make_portable.py'}
+SKIP_DIRS = {'__pycache__', '_test_out', '.git', '_tools'}
+SKIP_FILES = {'settings.json', 'make_portable.py', '启动.cmd', '启动.vbs'}
 SKIP_PREFIX = ('.dsh-ops-update',)
 
 
