@@ -18,45 +18,13 @@ class EmbedError(RuntimeError):
     pass
 
 
-def _force_trans_double_bonds(mol):
-    """把所有非环 C=C 强制成 E（反式）。
-
-    共轭长链（花青、类胡萝卜素）实验上都是全反式伸展构象；ChemDraw 的手绘
-    2D 图常有画歪的顺式键，照抄会得到弯折的起始结构。默认按反式生成。
-    """
-    rings = mol.GetRingInfo()
-    for b in mol.GetBonds():
-        if b.GetBondType() != Chem.BondType.DOUBLE:
-            continue
-        if rings.NumBondRings(b.GetIdx()):
-            continue
-        a1, a2 = b.GetBeginAtom(), b.GetEndAtom()
-        if a1.GetSymbol() != 'C' or a2.GetSymbol() != 'C':
-            continue
-        # 取代基可能不止一个（例如双键一端是环原子，环上有两个邻居），
-        # 取第一个邻居作参考即可；环内双键上面已经跳过了。
-        n1 = [n.GetIdx() for n in a1.GetNeighbors() if n.GetIdx() != a2.GetIdx()]
-        n2 = [n.GetIdx() for n in a2.GetNeighbors() if n.GetIdx() != a1.GetIdx()]
-        if not n1 or not n2:
-            continue
-        n1, n2 = n1[:1], n2[:1]
-        # STEREOE 需要同时指明两个参考取代基，否则 ETKDG 看不到这个约束
-        b.SetStereoAtoms(n1[0], n2[0])
-        b.SetStereo(Chem.BondStereo.STEREOE)
-    return mol
-
-
-def embed_3d(mol, n_conformers=1, force_field='MMFF94', seed=0xf00d, max_iters=2000,
-             force_trans=None):
+def embed_3d(mol, n_conformers=1, force_field='MMFF94', seed=0xf00d, max_iters=2000):
     """mol（带 2D 坐标）→ 加氢、嵌入、力场优化后返回 3D mol。
 
-    force_trans=True（默认）把非环 C=C 全部按反式处理：共轭长链（花青、
-    类胡萝卜素）实验上都是全反式伸展构象，照抄手绘的顺式键会得到弯折结构。
+    双键顺反以 ChemDraw 里画的为准：cdxml.load_molecule() 已从 2D 坐标检测出
+    E/Z 并写进 bond stereo，ETKDG 嵌入时会照此约束；图上没体现顺反的双键才
+    由 ETKDG 按固定 seed 决定。
     """
-    if force_trans is None:
-        force_trans = True
-    if force_trans:
-        _force_trans_double_bonds(mol)
     molh = Chem.AddHs(mol)
     params = AllChem.ETKDGv3()
     params.randomSeed = int(seed)

@@ -57,7 +57,7 @@ A1.cdxml / A1.cdx / A1.mol
         │  （.cdx 先用本机 ChemDraw 转成 molfile）
         ▼
    RDKit 读结构（键级、电荷、隐式氢、从 2D 坐标读双键顺反）
-        │  ETKDG 生成 3D + MMFF94 力场优化（非环 C=C 强制反式）
+        │  ETKDG 生成 3D + MMFF94 力场优化（双键顺反照 ChemDraw 画法）
         │  [可选] 换成 Chem3D：ChemScript 转 3D + MM2，见「3D 后端」
         ▼
    .gjf（头部 + route + 标题 + 电荷/多重度 + 坐标 + 两个空行）
@@ -221,16 +221,14 @@ TD-DFT UV-Vis calculation at PBE0/def2-TZVP level
 
 ---
 
-## 双键顺反（E/Z）与「全反式」
+## 双键顺反（E/Z）
 
-ChemDraw 的 **2D 坐标里带着每个双键的顺反信息**，工具会把它读出来；并且默认把
-**所有非环 C=C 强制成反式（E）**——花青染料、类胡萝卜素实验上都是全反式伸展构象。
+ChemDraw 的 **2D 坐标里带着每个双键的顺反信息**，工具会把它读出来，3D 起始结构
+**照抄 ChemDraw 的画法**：画成顺式就是顺式，画成反式就是反式；图上没体现顺反的
+双键（如画成直线、取代基对称）由 ETKDG 按固定随机种子决定，结果可复现。
 
-> 以前没做这一步时，ETKDG 会随机选顺反，β-胡萝卜素被建出 5 个顺式双键，优化后是弯链、
-> 平面性差、吸收峰偏蓝。2026-10-23 修复后，A1–A4、B1、B2 生成的 3D 起始结构全部是全反式。
-
-如果要保留手绘的顺式（例如特意研究顺式异构体），改代码：
-`embed.embed_3d(..., force_trans=False)`。
+> 历史上曾默认把所有非环 C=C 强制成反式（E），2026-10-29 起已移除该逻辑：
+> 需要全反式构象时，请在 ChemDraw 里把双键画成反式即可。
 
 ---
 
@@ -240,7 +238,7 @@ ChemDraw 的 **2D 坐标里带着每个双键的顺反信息**，工具会把它
 
 | 后端 | 怎么做 3D | 依赖 | 适用 |
 | --- | --- | --- | --- |
-| **RDKit（默认）** | ETKDG 嵌入 + MMFF94 力场优化（非环 C=C 强制反式） | `rdkit`（工具自带） | 日常使用；MMFF94 对 S/N 的参数更靠谱 |
+| **RDKit（默认）** | ETKDG 嵌入 + MMFF94 力场优化（顺反照 ChemDraw 画法） | `rdkit`（工具自带） | 日常使用；MMFF94 对 S/N 的参数更靠谱 |
 | Chem3D | ChemScript：`ReadFile → ConvertTo3DStructure → 循环 MM2` | Python **3.9 / 3.10** + 本机 ChemOffice；在「Chem3D Python」填解释器路径（或设环境变量 `CHEM3D_PYTHON`） | 想复现课上的 Chem3D/MM2 流程，或要更平的共轭链 |
 
 要点：
@@ -254,8 +252,9 @@ ChemDraw 的 **2D 坐标里带着每个双键的顺反信息**，工具会把它
   按提示在设置里填 3.10 的 `python.exe` 即可。
 - **MM2 的两个已知偏差**：C–S 键被压到约 1.47 Å（A2 文献约 1.73 Å；MMFF94 给 1.79），
   而且共轭多烯会被**强制拉成全反式**（2-丁烯的顺式能保留，己三烯/四烯/A2 的顺式会被翻掉）。
-  所以**顺反控制代码保留**：默认 RDKit 后端仍然用 `_force_trans_double_bonds()`，
-  切到 Chem3D 只是换 3D 来源；两种后端都只是起始结构，最终几何靠 Gaussian 的 `opt`。
+  RDKit 后端已移除强制反式（2026-10-29），顺反照 ChemDraw 画法；要精确保留手绘的顺式
+  共轭链，请用默认的 RDKit 后端，Chem3D 后端只适合全反式体系；两种后端都只是起始结构，
+  最终几何靠 Gaussian 的 `opt`。
 - TD-DFT / 单独 freq 不需要 3D 坐标：即使选了 Chem3D，也只做 RDKit 解析，不启动 ChemScript。
 - 如果系统的 `PYTHONPATH` 里同时有 `C:\Program Files (x86)\...\ChemScript\Lib`（32 位）和
   64 位的那份，worker 会先把指定的 Lib 提到最前，避免 64 位 Python 误加载 32 位 `.pyd`。
