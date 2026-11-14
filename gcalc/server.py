@@ -165,12 +165,46 @@ def _hpc_client(payload):
         return cli, _hpc_session_info()
 
 
+#: 子进程里「先声明 DPI 感知、再开窗」的前置代码。
+#:
+#: 不声明时 Windows 把进程当作 96 DPI，再把整窗位图放大到显示器缩放
+#: （200% 的机器上就是拉伸 2 倍）——系统文件夹对话框因此又小又糊。
+#: 与 `_core/filepick.py` 里的 `_DPI_PRELUDE` 同一套逻辑（两个仓库独立，
+#: 所以各存一份；改这里时记得两边一起改）。
+_DPI_PRELUDE = r"""
+def _gcalc_enable_dpi_awareness():
+    try:
+        import ctypes
+    except Exception:
+        return 'none'
+    try:
+        if ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4)):
+            return 'permonitor_v2'
+    except Exception:
+        pass
+    try:
+        if ctypes.windll.shcore.SetProcessDpiAwareness(2) == 0:
+            return 'permonitor'
+    except Exception:
+        pass
+    try:
+        ctypes.windll.user32.SetProcessDPIAware()
+        return 'system'
+    except Exception:
+        pass
+    return 'none'
+
+
+_gcalc_enable_dpi_awareness()
+"""
+
+
 def pick_folder(initial=None):
     """弹出系统「选择文件夹」窗口（子进程 tkinter），返回绝对路径。"""
     auto = os.environ.get('GCALC_PICK_AUTO')
     if auto:
         return os.path.normpath(auto) if os.path.isdir(auto) else ''
-    code = (
+    code = _DPI_PRELUDE + (
         "import sys, tkinter as tk\n"
         "from tkinter import filedialog\n"
         "root = tk.Tk(); root.withdraw()\n"
