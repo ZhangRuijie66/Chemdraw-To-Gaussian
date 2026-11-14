@@ -1,7 +1,9 @@
-# 核心依赖（启动.cmd 会自动安装）
+# Core dependencies (the launcher .cmd installs them automatically).
+# Keep this file PURE ASCII: pip decodes it with the locale encoding
+# (cp936 on Chinese Windows), so non-ASCII comments break "pip install -r".
 rdkit>=2023.9
 numpy
 matplotlib
 
-# SSH 提交用（也可放在 vendor/ 里离线使用）
+# SSH submission (paramiko can also live in vendor/ for offline use)
 paramiko>=3.0
